@@ -5,10 +5,17 @@ use std::path::Path;
 
 pub const PAGE_SIZE: usize = 4096;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct PageId(pub u64);
 
+impl Default for PageId {
+    fn default() -> Self {
+        Self::INVALID_PAGE_ID
+    }
+}
+
 impl PageId {
+    pub const INVALID_PAGE_ID: PageId = PageId(u64::MAX);
     pub fn to_u64(self) -> u64 { self.0 }
 }
 
@@ -58,12 +65,19 @@ impl DiskManager {
         self.heap_file.seek(SeekFrom::Start(offset))?;  // ファイルの先頭からoffsetバイト目(ページの先頭)
         self.heap_file.write_all(data)  // データの書き込み
     }
+
+    // ファイルシステムの内容をディスクに反映する
+    pub fn sync(&mut self) -> io::Result<()> {
+        self.heap_file.flush()?;
+        self.heap_file.sync_all()
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::NamedTempFile;
+
+    use super::*;
 
     #[test]
     fn test() {
