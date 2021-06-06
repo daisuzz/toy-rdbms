@@ -1,10 +1,10 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::io;
+use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
-use crate::disk_manager::{DiskManager, PageId, PAGE_SIZE};
-use std::ops::{Index, IndexMut};
+use crate::disk_manager::{DiskManager, PAGE_SIZE, PageId};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -14,11 +14,14 @@ pub enum Error {
     NoFreeBuffer,
 }
 
+// 実際のデータが格納されたバイト列
 pub type Page = [u8; PAGE_SIZE];
 
+// Frameに紐づくIndex
 #[derive(Default, Clone, Copy)]
 pub struct BufferId(usize);
 
+// PageにIDと更新フラグを持たせたもの
 pub struct Buffer {
     pub page_id: PageId,
     pub page: RefCell<Page>,
@@ -35,12 +38,14 @@ impl Default for Buffer {
     }
 }
 
+// Bufferに参照カウントを持たせたもの
 #[derive(Default)]
 pub struct Frame {
     usage_count: u64,
     buffer: Rc<Buffer>,
 }
 
+// バッファの配列と、走査対象のバッファIDを持たせたもの
 pub struct BufferPool {
     buffers: Vec<Frame>,
     next_victim_id: BufferId,
@@ -74,18 +79,27 @@ impl BufferPool {
         let victim_id = loop {
             let next_victim_id = self.next_victim_id;
             let frame = &mut self[next_victim_id];
+
+            // バッファがどこからも参照されていない場合、不要なバッファとする
             if frame.usage_count == 0 {
                 break self.next_victim_id;
             }
+
+            // バッファが貸し出し中ではない場合
             if Rc::get_mut(&mut frame.buffer).is_some() {
                 frame.usage_count -= 1;
                 consecutive_pinned = 0;
             } else {
+                // バッファが貸し出し中の場合
                 consecutive_pinned += 1;
+
+                // 全てのバッファが貸し出し中の場合
                 if consecutive_pinned >= pool_size {
                     return None;
                 }
             }
+
+            // 次のバッファを走査
             self.next_victim_id = self.increment_id(self.next_victim_id);
         };
         Some(victim_id)
@@ -98,7 +112,6 @@ impl BufferPool {
 
 impl Index<BufferId> for BufferPool {
     type Output = Frame;
-
     fn index(&self, index: BufferId) -> &Self::Output {
         &self.buffers[index.0]
     }
@@ -120,8 +133,10 @@ impl BufferPoolManager {
         }
     }
 
-    // ページを読み込む
+    // ページをバッファから読み込む
     fn fetch_page(&mut self, page_id: PageId) -> Result<Rc<Buffer>, Error> {
+
+        // 対象のページがバッファプールにある場合は、バッファを返す
         if let Some(&buffer_id) = self.page_table.get(&page_id) {
             let frame = &mut self.pool[buffer_id];
             frame.usage_count += 1;
@@ -138,8 +153,7 @@ impl BufferPoolManager {
 
             // 捨てるバッファが更新されている場合、ディスクに反映
             if buffer.is_dirty.get() {
-                self.disk
-                    .write_page_data(evict_page_id, buffer.page.get_mut())?;
+                self.disk.write_page_data(evict_page_id, buffer.page.get_mut())?;
             }
 
             // バッファにページを格納
