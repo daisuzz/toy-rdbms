@@ -134,7 +134,7 @@ impl BufferPoolManager {
     }
 
     // ページをバッファから読み込む
-    fn fetch_page(&mut self, page_id: PageId) -> Result<Rc<Buffer>, Error> {
+    pub fn fetch_page(&mut self, page_id: PageId) -> Result<Rc<Buffer>, Error> {
 
         // 対象のページがバッファプールにある場合は、バッファを返す
         if let Some(&buffer_id) = self.page_table.get(&page_id) {
@@ -172,7 +172,7 @@ impl BufferPoolManager {
     }
 
     // ページを作成する
-    fn create_page(&mut self) -> Result<Rc<Buffer>, Error> {
+    pub fn create_page(&mut self) -> Result<Rc<Buffer>, Error> {
         // 空いているバッファを取得
         let buffer_id = self.pool.evict().ok_or(Error::NoFreeBuffer)?;
         let frame = &mut self.pool[buffer_id];
