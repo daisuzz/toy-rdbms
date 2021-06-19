@@ -14,12 +14,17 @@ fn main() -> Result<()> {
 
     // BTreeからデータを取得
     let btree = BTree::new(PageId(0));
-    let mut iter = btree.search(&mut bufmgr, SearchMode::Start)?;
+    let mut search_key = vec![];
+    tuple::encode([b"y"].iter(), &mut search_key);
+    let mut iter = btree.search(&mut bufmgr, SearchMode::Key(search_key))?;
 
     // データを表示
     while let Some((key, value)) = iter.next(&mut bufmgr)? {
         let mut record = vec![];
         tuple::decode(&key, &mut record);
+        if record[0] != b"y" {
+            break;
+        }
         tuple::decode(&value, &mut record);
         println!("{:?}", tuple::Pretty(&record));
     }
