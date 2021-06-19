@@ -1,6 +1,5 @@
 use zerocopy::{AsBytes, ByteSlice, FromBytes, LayoutVerified};
 
-use crate::disk::PageId;
 use crate::disk_manager::PageId;
 
 #[derive(Debug, FromBytes, AsBytes)]

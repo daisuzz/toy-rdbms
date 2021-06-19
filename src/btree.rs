@@ -2,14 +2,14 @@ use std::cell::{Ref, RefMut};
 use std::convert::identity;
 use std::rc::Rc;
 
-use thiserror::Error;
-
 use bincode::Options;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use zerocopy::{AsBytes, ByteSlice};
 
-use crate::buffer_pool_manager::{Buffer, BufferPool, BufferPoolManager};
-use crate::disk_manager::{DiskManager, PageId};
+use crate::buffer_pool_manager::{Buffer, BufferPoolManager};
+use crate::buffer_pool_manager;
+use crate::disk_manager::PageId;
 
 mod branch;
 mod leaf;
@@ -37,7 +37,7 @@ pub enum Error {
     #[error("duplicate key")]
     DuplicateKey,
     #[error(transparent)]
-    Buffer(#[from] buffer::Error),
+    Buffer(#[from] buffer_pool_manager::Error),
 }
 
 #[derive(Debug, Clone)]
@@ -275,7 +275,7 @@ impl Iter {
 mod tests {
     use tempfile::tempfile;
 
-    use crate::{buffer::BufferPool, disk::DiskManager};
+    use crate::{buffer_pool_manager::BufferPool, disk_manager::DiskManager};
 
     use super::*;
 

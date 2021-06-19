@@ -3,7 +3,6 @@ use std::mem::size_of;
 use zerocopy::{AsBytes, ByteSlice, ByteSliceMut, FromBytes, LayoutVerified};
 
 use crate::bsearch::binary_search_by;
-use crate::disk::PageId;
 use crate::disk_manager::PageId;
 use crate::slotted::{self, Slotted};
 
