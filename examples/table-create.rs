@@ -2,18 +2,22 @@ use anyhow::Result;
 
 use toy_rdbms::buffer_pool_manager::{BufferPool, BufferPoolManager};
 use toy_rdbms::disk_manager::{DiskManager, PageId};
-use toy_rdbms::table::SimpleTable;
+use toy_rdbms::query::UniqueIndex;
+use toy_rdbms::table::{Table};
 
 fn main() -> Result<()> {
-
     // 初期化処理
-    let disk = DiskManager::open("simple.toy")?;
+    let disk = DiskManager::open("table.toy")?;
     let pool = BufferPool::new(10);
     let mut bufmgr = BufferPoolManager::new(disk, pool);
 
-    let mut table = SimpleTable {
+    let mut table = Table {
         meta_page_id: PageId::INVALID_PAGE_ID,
         num_key_elements: 1,
+        unique_indices: vec![UniqueIndex {
+            meta_page_id: PageId::INVALID_PAGE_ID,
+            skey: vec![2],
+        }],
     };
 
     table.create(&mut bufmgr)?;
